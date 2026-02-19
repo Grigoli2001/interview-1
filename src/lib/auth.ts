@@ -1,13 +1,11 @@
-import { AuthOptions, getServerSession } from "next-auth";
+import { AuthOptions, Session, getServerSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { logger } from "./logger";
+import { AUTH_ROUTES } from "./auth-routes";
 
-/** Centralized auth routes - single source of truth */
-export const AUTH_ROUTES = {
-  signIn: "/auth/login",
-} as const;
+export { AUTH_ROUTES };
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -64,6 +62,17 @@ export const authOptions: AuthOptions = {
       },
     }),
   ],
+  callbacks:{
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    session: async ({ session }: { session: Session }) => {
+      return session;
+    },
+  },
   pages: {
     signIn: AUTH_ROUTES.signIn,
   },
