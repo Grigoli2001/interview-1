@@ -21,6 +21,7 @@ import {
   type RegisterFormData,
   registerSchema,
 } from "@/lib/validations/auth";
+import { PasswordStrengthIndicator } from "../ui/password-strength-indicator";
 import { register as registerUser } from "@/actions/auth";
 import { AUTH_ROUTES, getSafeCallbackUrl } from "@/lib/auth-routes";
 import { logger } from "@/lib/logger";
@@ -30,6 +31,8 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
   const [error, setError] = useState<string | null>(null);
+
+  const [passwordPreview, setPasswordPreview] = useState("");
 
   const {
     register: registerField,
@@ -126,13 +129,16 @@ export function RegisterForm() {
               disabled={isSubmitting}
               autoComplete="new-password"
               aria-invalid={!!errors.password}
-              {...registerField("password")}
+              {...registerField("password", {
+                onChange: (e) => setPasswordPreview(e.target.value),
+              })}
             />
             {errors.password && (
               <p className="text-sm text-destructive">
                 {errors.password.message}
               </p>
             )}
+            <PasswordStrengthIndicator password={passwordPreview} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm password</Label>
