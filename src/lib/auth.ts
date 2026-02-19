@@ -4,10 +4,12 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { logger } from "./logger";
 import { AUTH_ROUTES } from "./auth-routes";
+import { env } from "@/env";
 
 export { AUTH_ROUTES };
 
 export const authOptions: AuthOptions = {
+  secret: env.NEXTAUTH_SECRET,
   providers: [
     Credentials({
       name: "Credentials",

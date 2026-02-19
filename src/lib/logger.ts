@@ -10,6 +10,8 @@
  * - error: error only
  */
 
+import { env } from "../env";
+
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 type LogLevel = (typeof LOG_LEVELS)[number];
 
@@ -21,7 +23,7 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
 };
 
 function getEffectiveLevel(): LogLevel | "none" {
-  const raw = process.env.NEXT_PUBLIC_LOG_LEVEL;
+  const raw = env.NEXT_PUBLIC_LOG_LEVEL;
   const value = (raw ?? "info").toLowerCase().trim();
   if (value === "none" || value === "off" || value === "disabled") {
     return "none";

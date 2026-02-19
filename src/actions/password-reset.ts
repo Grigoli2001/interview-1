@@ -13,12 +13,13 @@ import {
   type ResetPasswordFormData,
 } from "@/lib/validations/auth";
 import { AUTH_ROUTES } from "@/lib/auth-routes";
+import { env } from "@/env";
 
 const BCRYPT_ROUNDS = 12;
 const TOKEN_EXPIRY_HOURS = 1;
 
 function getBaseUrl(): string {
-  return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  return env.NEXTAUTH_URL;
 }
 
 export type RequestPasswordResetResult =
