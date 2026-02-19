@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthSessionProvider } from "@/lib/providers/session-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +32,6 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthSessionProvider>
-            <div className="fixed left-4 top-4 z-50">
-              <ThemeToggle />
-            </div>
             {children}
           </AuthSessionProvider>
         </ThemeProvider>
