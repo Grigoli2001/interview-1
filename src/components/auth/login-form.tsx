@@ -20,21 +20,13 @@ import { Label } from "../ui/label";
 import { LoginFormData } from "@/lib/validations/auth";
 import { loginSchema } from "@/lib/validations/auth";
 import { logger } from "@/lib/logger";
-
-
-/** Validates callbackUrl to prevent open redirects. Only allows relative same-origin paths. */
-function getSafeCallbackUrl(raw: string | null): string {
-  const url = raw?.trim() ?? "/";
-  if (url.startsWith("/") && !url.startsWith("//")) {
-    return url;
-  }
-  return "/";
-}
+import { getSafeCallbackUrl } from "@/lib/auth-routes";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
+  const registered = searchParams.get("registered") === "true";
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -80,6 +72,13 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {registered && (
+            <Alert>
+              <AlertDescription>
+                Account created successfully. Please sign in.
+              </AlertDescription>
+            </Alert>
+          )}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>

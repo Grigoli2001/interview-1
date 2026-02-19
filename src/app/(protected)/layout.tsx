@@ -1,4 +1,6 @@
+import { headers } from "next/headers";
 import { auth, AUTH_ROUTES } from "@/lib/auth";
+import { getSafeCallbackUrl } from "@/lib/auth-routes";
 import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({
@@ -8,7 +10,11 @@ export default async function ProtectedLayout({
 }) {
   const session = await auth();
   if (!session) {
-    redirect(AUTH_ROUTES.signIn);
+    const headersList = await headers();
+    const callbackUrl = getSafeCallbackUrl(headersList.get("x-callback-url"));
+    const signInUrl = new URL(AUTH_ROUTES.signIn, "http://localhost");
+    signInUrl.searchParams.set("callbackUrl", callbackUrl);
+    redirect(signInUrl.pathname + signInUrl.search);
   }
   return <>{children}</>;
 }
