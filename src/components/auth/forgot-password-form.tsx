@@ -1,9 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
+
+import { requestPasswordReset } from "@/actions/password-reset";
+import { AUTH_ROUTES } from "@/lib/auth-routes";
+import { logger } from "@/lib/logger";
+import {
+  type ForgotPasswordFormData,
+  forgotPasswordSchema,
+} from "@/lib/validations/auth";
+
 import { Button } from "../ui/button";
 import {
   Card,
@@ -13,23 +22,17 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Alert, AlertDescription } from "../ui/alert";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import {
-  type ForgotPasswordFormData,
-  forgotPasswordSchema,
-} from "@/lib/validations/auth";
-import { requestPasswordReset } from "@/actions/password-reset";
-import { AUTH_ROUTES } from "@/lib/auth-routes";
+import { FieldGroup } from "../ui/field";
+import { FormInputField } from "../ui/form-input-field";
 
 export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const {
-    register,
+    control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: "" },
@@ -37,14 +40,19 @@ export function ForgotPasswordForm() {
 
   async function onSubmit(data: ForgotPasswordFormData) {
     setError(null);
-    const result = await requestPasswordReset(data);
+    try {
+      const result = await requestPasswordReset(data);
 
-    if (!result.success) {
-      setError(result.error);
-      return;
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      logger.error("Password reset request failed", err);
+      setError("Something went wrong. Please try again.");
     }
-
-    setSubmitted(true);
   }
 
   if (submitted) {
@@ -82,21 +90,18 @@ export function ForgotPasswordForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
+          <FieldGroup className="gap-4">
+            <FormInputField
+              control={control}
+              name="email"
+              label="Email"
               type="email"
               placeholder="demo@example.com"
-              disabled={isSubmitting}
               autoComplete="email"
-              aria-invalid={!!errors.email}
-              {...register("email")}
+              disabled={isSubmitting}
+              id="forgot-password-email"
             />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-          </div>
+          </FieldGroup>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Sending..." : "Send reset link"}
           </Button>

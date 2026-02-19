@@ -11,7 +11,7 @@ export type RegisterResult =
   | { success: true }
   | { success: false; error: string };
 
-export async function register(data: RegisterFormData): Promise<RegisterResult> {
+export async function registerUser(data: RegisterFormData): Promise<RegisterResult> {
   const parsed = registerSchema.safeParse(data);
   if (!parsed.success) {
     const firstError = parsed.error.flatten().fieldErrors;

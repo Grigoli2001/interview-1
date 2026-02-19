@@ -11,13 +11,11 @@ export const env = createEnv({
       .optional()
       .default("http://localhost:3000"),
 
-    // Brevo (transactional email)
     BREVO_API_KEY: z.string().min(1, "BREVO_API_KEY is required"),
     EMAIL_FROM_NAME: z.string().optional(),
     EMAIL_FROM_EMAIL: z.string().email().min(1, "EMAIL_FROM_EMAIL is required"),
     CONTACT_EMAIL: z.string().email().min(1, "CONTACT_EMAIL is required"),
 
-    // Anthropic (if used elsewhere)
     ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
   },
   client: {

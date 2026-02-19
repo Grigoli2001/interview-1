@@ -1,9 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
+
+import { resetPassword } from "@/actions/password-reset";
+import { AUTH_ROUTES } from "@/lib/auth-routes";
+import { logger } from "@/lib/logger";
+import {
+  type ResetPasswordFormData,
+  resetPasswordSchema,
+} from "@/lib/validations/auth";
+
 import { Button } from "../ui/button";
 import {
   Card,
@@ -13,14 +22,8 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Alert, AlertDescription } from "../ui/alert";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import {
-  type ResetPasswordFormData,
-  resetPasswordSchema,
-} from "@/lib/validations/auth";
-import { resetPassword } from "@/actions/password-reset";
-import { AUTH_ROUTES } from "@/lib/auth-routes";
+import { FieldGroup } from "../ui/field";
+import { FormInputField } from "../ui/form-input-field";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -30,9 +33,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const {
-    register,
+    control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -43,13 +46,18 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
   async function onSubmit(data: ResetPasswordFormData) {
     setError(null);
-    const result = await resetPassword(token, data);
+    try {
+      const result = await resetPassword(token, data);
 
-    if (!result.success) {
-      setError(result.error);
-      return;
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      // Success: redirect() is called from the server action
+    } catch (err) {
+      logger.error("Password reset failed", err);
+      setError("Something went wrong. Please try again.");
     }
-    // Success: redirect() is called from the server action
   }
 
   return (
@@ -67,40 +75,28 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="password">New password</Label>
-            <Input
-              id="password"
+          <FieldGroup className="gap-4">
+            <FormInputField
+              control={control}
+              name="password"
+              label="New password"
               type="password"
               placeholder="••••••••"
-              disabled={isSubmitting}
               autoComplete="new-password"
-              aria-invalid={!!errors.password}
-              {...register("password")}
+              disabled={isSubmitting}
+              id="reset-password-password"
             />
-            {errors.password && (
-              <p className="text-sm text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm password</Label>
-            <Input
-              id="confirmPassword"
+            <FormInputField
+              control={control}
+              name="confirmPassword"
+              label="Confirm password"
               type="password"
               placeholder="••••••••"
-              disabled={isSubmitting}
               autoComplete="new-password"
-              aria-invalid={!!errors.confirmPassword}
-              {...register("confirmPassword")}
+              disabled={isSubmitting}
+              id="reset-password-confirmPassword"
             />
-            {errors.confirmPassword && (
-              <p className="text-sm text-destructive">
-                {errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
+          </FieldGroup>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Resetting..." : "Reset password"}
           </Button>
