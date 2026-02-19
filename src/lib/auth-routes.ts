@@ -1,7 +1,9 @@
 /** Centralized auth routes - client-safe, no server dependencies */
 export const AUTH_ROUTES = {
-  signIn: "/auth/login",
-  register: "/auth/register",
+  signIn: "/login",
+  register: "/register",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
 } as const;
 
 /** Validates callbackUrl to prevent open redirects. Only allows relative same-origin paths. */
