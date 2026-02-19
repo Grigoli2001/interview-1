@@ -20,13 +20,14 @@ import { Label } from "../ui/label";
 import { LoginFormData } from "@/lib/validations/auth";
 import { loginSchema } from "@/lib/validations/auth";
 import { logger } from "@/lib/logger";
-import { getSafeCallbackUrl } from "@/lib/auth-routes";
+import { getSafeCallbackUrl, AUTH_ROUTES } from "@/lib/auth-routes";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
   const registered = searchParams.get("registered") === "true";
+  const passwordReset = searchParams.get("reset") === "success";
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -79,6 +80,14 @@ export function LoginForm() {
               </AlertDescription>
             </Alert>
           )}
+          {passwordReset && (
+            <Alert>
+              <AlertDescription>
+                Password reset successfully. Please sign in with your new
+                password.
+              </AlertDescription>
+            </Alert>
+          )}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -121,7 +130,7 @@ export function LoginForm() {
           </Button>
           <div className="space-y-2 text-center text-sm">
             <Link
-              href="/forgot-password"
+              href={AUTH_ROUTES.forgotPassword}
               className="text-muted-foreground hover:text-primary hover:underline"
             >
               Forgot password?
