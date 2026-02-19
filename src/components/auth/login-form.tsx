@@ -1,11 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod"; 
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+
+import { getSafeCallbackUrl, AUTH_ROUTES } from "@/lib/auth-routes";
+import { logger } from "@/lib/logger";
+import {
+  type LoginFormData,
+  loginSchema,
+} from "@/lib/validations/auth";
+
 import { Button } from "../ui/button";
 import {
   Card,
@@ -15,12 +23,8 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Alert, AlertDescription } from "../ui/alert";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { LoginFormData } from "@/lib/validations/auth";
-import { loginSchema } from "@/lib/validations/auth";
-import { logger } from "@/lib/logger";
-import { getSafeCallbackUrl, AUTH_ROUTES } from "@/lib/auth-routes";
+import { FieldGroup } from "../ui/field";
+import { FormInputField } from "../ui/form-input-field";
 
 export function LoginForm() {
   const router = useRouter();
@@ -31,9 +35,9 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
 
   const {
-    register,
+    control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -93,38 +97,28 @@ export function LoginForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
+          <FieldGroup className="gap-4">
+            <FormInputField
+              control={control}
+              name="email"
+              label="Email"
               type="email"
               placeholder="demo@example.com"
-              disabled={isSubmitting}
               autoComplete="email"
-              aria-invalid={!!errors.email}
-              {...register("email")}
+              disabled={isSubmitting}
+              id="login-email"
             />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
+            <FormInputField
+              control={control}
+              name="password"
+              label="Password"
               type="password"
               placeholder="••••••••"
-              disabled={isSubmitting}
               autoComplete="current-password"
-              aria-invalid={!!errors.password}
-              {...register("password")}
+              disabled={isSubmitting}
+              id="login-password"
             />
-            {errors.password && (
-              <p className="text-sm text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
+          </FieldGroup>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
