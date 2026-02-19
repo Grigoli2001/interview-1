@@ -1,0 +1,141 @@
+---
+description: Tailwind CSS v4 changes and conventions — prevents agent confusion with v3 patterns
+globs: "**/*.{tsx,jsx,css}"
+alwaysApply: false
+---
+
+# Tailwind CSS v4 — Key Changes & Conventions
+
+This project uses **Tailwind CSS v4**. Do not apply v3 patterns, config, or syntax. Reference: [Tailwind v4 Blog](https://tailwindcss.com/blog/tailwindcss-v4)
+
+---
+
+## 1. Installation & CSS Entry
+
+**v4 (correct):**
+```css
+@import "tailwindcss";
+```
+
+**v3 (do not use):**
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+- Single `@import "tailwindcss"` — no `@tailwind` directives.
+- PostCSS: use `@tailwindcss/postcss` plugin (not `tailwindcss`).
+- Vite: use `@tailwindcss/vite` for best performance.
+
+---
+
+## 2. Configuration — CSS-First
+
+**v4 (correct):** Configure in CSS with `@theme`:
+
+```css
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Satoshi", "sans-serif";
+  --breakpoint-3xl: 1920px;
+  --color-avocado-500: oklch(0.84 0.18 117.33);
+  --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
+}
+```
+
+**v3 (do not use):** `tailwind.config.js` with `theme.extend`, `content`, etc.
+
+- No `tailwind.config.js` by default.
+- Custom colors, fonts, breakpoints go in `@theme { }`.
+- Design tokens become CSS variables (e.g. `var(--color-avocado-500)`).
+
+---
+
+## 3. Content Detection
+
+- **v4:** Automatic. No `content` array. Ignores `.gitignore` and binary files.
+- **v3:** Required `content: ["./src/**/*.{js,ts,jsx,tsx}"]`.
+- To add extra sources: `@source "../node_modules/@my-company/ui-lib";` in CSS.
+
+---
+
+## 4. Gradients — Renamed Utilities
+
+| v3 | v4 |
+|----|-----|
+| `bg-gradient-to-r` | `bg-linear-to-r` |
+| `bg-gradient-to-b` | `bg-linear-to-b` |
+| etc. | `bg-linear-*` |
+
+- Linear gradients: use `bg-linear-*` (e.g. `bg-linear-45`, `bg-linear-to-r`).
+- New: `bg-conic-*`, `bg-radial-*` for conic/radial gradients.
+- Interpolation modifiers: `bg-linear-to-r/srgb`, `bg-linear-to-r/oklch`.
+
+---
+
+## 5. Container Queries — Built-in
+
+- **v4:** No `@tailwindcss/container-queries` plugin.
+- Use `@container` on parent, then `@sm:`, `@lg:`, `@max-md:` on children.
+- Example: `@container` + `@sm:grid-cols-3` + `@max-md:grid-cols-1`.
+
+---
+
+## 6. Dynamic Utilities — No Arbitrary Values Needed
+
+- **Grid:** `grid-cols-15`, `grid-cols-17` work out of the box (no `grid-cols-[15]`).
+- **Spacing:** `mt-8`, `w-17`, `pr-29` derived from spacing scale.
+- **Data attributes:** `data-current:opacity-100` works without `theme.extend` or plugin.
+
+---
+
+## 7. New Variants
+
+| Variant | Purpose |
+|---------|---------|
+| `starting:` | `@starting-style` for enter/exit transitions |
+| `not-*` | `:not()` — e.g. `not-hover:opacity-75` |
+| `in-*` | Like `group-*` but without `group` class |
+| `open` | Also targets `:popover-open` |
+| `inert:` | Elements with `inert` attribute |
+| `nth-*` | nth-child selectors |
+
+---
+
+## 8. New Utilities
+
+- **3D transforms:** `rotate-x-*`, `rotate-y-*`, `scale-z-*`, `translate-z-*`, `perspective-*`, `transform-3d`.
+- **Shadows:** `inset-shadow-*`, `inset-ring-*` (up to 4 layers).
+- **Field sizing:** `field-sizing-auto`, `field-sizing-content` for auto-resizing textareas.
+- **Color scheme:** `color-scheme-light`, `color-scheme-dark`.
+- **Font stretch:** `font-stretch-*` for variable fonts.
+
+---
+
+## 9. Color Palette
+
+- Default palette uses `oklch` (wider gamut). Colors may appear slightly more vivid than v3.
+- Opacity: `color-mix()` — e.g. `bg-blue-500/50` works with CSS variables.
+
+---
+
+## 10. Imports
+
+- **v4:** Built-in `@import` support. No `postcss-import` required for Tailwind.
+- Multiple CSS files can be imported; Tailwind bundles them.
+
+---
+
+## Quick Reference — Do / Don't
+
+| Do | Don't |
+|----|-------|
+| `@import "tailwindcss"` | `@tailwind base/components/utilities` |
+| `@theme { }` for config | `tailwind.config.js` (unless migrating) |
+| `bg-linear-to-r` | `bg-gradient-to-r` |
+| `@container` + `@sm:` | `@tailwindcss/container-queries` plugin |
+| `grid-cols-15` directly | `grid-cols-[15]` arbitrary value |
+| `data-foo:opacity-100` | Config for data attributes |
+| `@tailwindcss/postcss` | `tailwindcss` PostCSS plugin |
