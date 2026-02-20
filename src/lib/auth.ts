@@ -1,4 +1,4 @@
-import { AuthOptions, Session, getServerSession } from "next-auth";
+import { AuthOptions, getServerSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
@@ -71,7 +71,10 @@ export const authOptions: AuthOptions = {
       }
       return token;
     },
-    session: async ({ session }: { session: Session }) => {
+    session: async ({ session, token }) => {
+      if (session?.user) {
+        session.user.id = token.id as string;
+      }
       return session;
     },
   },

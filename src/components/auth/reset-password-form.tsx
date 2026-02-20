@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription } from "../ui/alert";
 import { FieldGroup } from "../ui/field";
 import { FormInputField } from "../ui/form-input-field";
+import { PasswordStrengthIndicator } from "../ui/password-strength-indicator";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -85,6 +86,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               autoComplete="new-password"
               disabled={isSubmitting}
               id="reset-password-password"
+              renderAfterInput={(value) => (
+                <PasswordStrengthIndicator password={value} />
+              )}
             />
             <FormInputField
               control={control}
