@@ -23,6 +23,7 @@ export const messageParamSchema = z.object({
 
 export const chatRequestSchema = z.object({
   messages: z.array(messageParamSchema).min(1, "At least one message required"),
+  conversationId: z.string().cuid().optional(),
 });
 
 export const extractRequestSchema = z.object({

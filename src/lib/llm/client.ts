@@ -12,6 +12,9 @@ export const anthropic = new Anthropic({
 export const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 export const DEFAULT_MAX_TOKENS = 1024;
 
+/** Max input tokens for context window (200K total, leave room for response). */
+export const CONTEXT_WINDOW_MAX_INPUT_TOKENS = 180_000;
+
 /** System prompt for the chat route. Defines assistant role and behavior. */
 export const CHAT_SYSTEM_PROMPT = `You are a helpful, concise assistant. Be clear and direct in your responses.`;
 
