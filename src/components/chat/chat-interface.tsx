@@ -149,6 +149,9 @@ export function ChatInterface({
       setStreamingContent("");
       invalidateConversations();
 
+      // PII model runs async after stream; refetch after delay to pick up model spans
+      setTimeout(() => invalidateConversations(), 2500);
+
       if (conversationIdFromHeader && !effectiveConversationId) {
         setInternalConversationId(conversationIdFromHeader);
         window.history.replaceState(null, "", `/chat/${conversationIdFromHeader}`);
@@ -250,7 +253,9 @@ export function ChatInterface({
   }
 
   if (effectiveConversationId && error) {
-    return <ChatError />;
+    const isNotFound =
+      (error as { response?: { status?: number } })?.response?.status === 404;
+    return <ChatError isNotFound={isNotFound} />;
   }
 
   return (

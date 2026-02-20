@@ -153,16 +153,20 @@ export async function POST(request: Request) {
           },
         });
 
-        // Run PII model after generation; overwrite regex spans with LLM results.
-        // UI changes appear on refresh; client-side regex is trusted until then.
+        // PII model is the final source of truth. Always overwrite regex spans.
         try {
           const llmSpans = await detectPii(textContent);
-          if (llmSpans.length > 0) {
-            await prisma.message.update({
-              where: { id: created.id },
-              data: { piiSpans: llmSpans as object },
-            });
-          }
+          await prisma.message.update({
+            where: { id: created.id },
+            data: { piiSpans: (llmSpans.length > 0 ? llmSpans : []) as object },
+          });
+          const types = [...new Set(llmSpans.map((s) => s.type))].join(", ");
+          logger.info("PII model updated message spans in DB", {
+            messageId: created.id,
+            conversationId: conversation.id,
+            spanCount: llmSpans.length,
+            types: types || "(none)",
+          });
         } catch (piiErr) {
           logger.warn("PII model detection failed, keeping regex spans", {
             error: piiErr,

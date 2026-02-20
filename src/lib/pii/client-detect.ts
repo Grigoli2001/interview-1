@@ -1,10 +1,24 @@
 /**
  * Client-side PII span detection using regex patterns.
  * Runs in the browser for instant masking without an API call.
- * Aligns with redact-pii and PII model types. LLM overwrites after generation.
+ * LLM overwrites after generation and is the final source of truth.
  */
 
 import type { PiiSpan } from "./types";
+
+/** Words that should not be flagged as person_name (common phrases, pronouns, etc.) */
+const PERSON_NAME_STOPWORDS = new Set([
+  "hello", "hi", "hey", "my", "your", "our", "their", "the", "a", "an",
+  "and", "but", "or", "for", "with", "from", "that", "this", "have", "has",
+  "will", "can", "may", "please", "thank", "thanks", "dear", "sir", "madam",
+  "regards", "best", "sincerely", "name", "is", "are", "was", "were", "be",
+  "been", "being", "do", "does", "did", "would", "could", "should", "about",
+  "after", "before", "between", "during", "except", "through", "until",
+  "while", "because", "although", "however", "therefore", "monday", "tuesday",
+  "wednesday", "thursday", "friday", "saturday", "sunday", "january", "february",
+  "march", "april", "june", "july", "august", "september", "october", "november",
+  "december", "mr", "mrs", "ms", "dr", "prof",
+]);
 
 const PATTERNS: Array<{ type: string; regex: RegExp }> = [
   { type: "email", regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g },
@@ -54,9 +68,18 @@ const PATTERNS: Array<{ type: string; regex: RegExp }> = [
   },
 ];
 
+function isLikelyPersonName(matchedText: string): boolean {
+  const words = matchedText.trim().split(/\s+/);
+  if (words.length < 2) return false;
+  const allStopwords = words.every((w) =>
+    PERSON_NAME_STOPWORDS.has(w.toLowerCase()),
+  );
+  return !allStopwords;
+}
+
 /**
  * Detects PII spans in text using regex. Returns character indices.
- * Use for user messages to avoid an API call.
+ * Filters out person_name false positives (e.g. "Hello My", "My name").
  */
 export function detectPiiClient(text: string): PiiSpan[] {
   if (typeof text !== "string" || text.length === 0) return [];
@@ -68,6 +91,8 @@ export function detectPiiClient(text: string): PiiSpan[] {
     let match: RegExpExecArray | null;
     regex.lastIndex = 0;
     while ((match = regex.exec(text)) !== null) {
+      if (type === "person_name" && !isLikelyPersonName(match[0])) continue;
+
       const key = `${match.index}-${match.index + match[0].length}`;
       if (seen.has(key)) continue;
       seen.add(key);
