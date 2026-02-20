@@ -17,6 +17,7 @@ import {
   extractTextFromAssistantContent,
   extractTextFromContent,
   trimToContextWindow,
+  truncateForTitle,
 } from "./utils";
 
 export async function POST(request: Request) {
@@ -89,12 +90,13 @@ export async function POST(request: Request) {
         userContent = extractTextFromContent(lastUserMessage.content);
       }
     } else {
-      const created = await prisma.conversation.create({
-        data: { userId },
-      });
-      conversation = { id: created.id };
       const lastUserMessage = newMessages![newMessages!.length - 1];
       userContent = extractTextFromContent(lastUserMessage.content);
+      const title = truncateForTitle(userContent);
+      const created = await prisma.conversation.create({
+        data: { userId, title },
+      });
+      conversation = { id: created.id };
     }
 
     const allMessages: MessageParam[] = retry

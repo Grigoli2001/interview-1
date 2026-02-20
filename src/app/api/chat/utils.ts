@@ -5,6 +5,15 @@ import {
   DEFAULT_MODEL,
 } from "@/lib/llm/client";
 
+const CONVERSATION_TITLE_MAX_LENGTH = 50;
+
+export function truncateForTitle(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return "New conversation";
+  if (trimmed.length <= CONVERSATION_TITLE_MAX_LENGTH) return trimmed;
+  return trimmed.slice(0, CONVERSATION_TITLE_MAX_LENGTH - 3) + "...";
+}
+
 export function extractTextFromContent(
   content: string | Array<{ type?: string; text?: string }>,
 ): string {
