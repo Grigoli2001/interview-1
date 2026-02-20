@@ -10,6 +10,7 @@ import { chatRequestSchema } from "@/lib/llm/types";
 import { logger } from "@/lib/logger";
 // import { detectPii } from "@/lib/pii/detect";
 import { detectPiiClient } from "@/lib/pii/client-detect";
+import { sanitizeMessages } from "@/lib/pii/sanitize";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -110,6 +111,8 @@ export async function POST(request: Request) {
       CHAT_SYSTEM_PROMPT,
     );
 
+    const sanitizedForLlm = sanitizeMessages(withinContext);
+
     let userMsg: { id: string } | null = null;
     if (!retry) {
       userMsg = await prisma.message.create({
@@ -139,7 +142,7 @@ export async function POST(request: Request) {
       model: DEFAULT_MODEL,
       max_tokens: DEFAULT_MAX_TOKENS,
       system: CHAT_SYSTEM_PROMPT,
-      messages: withinContext,
+      messages: sanitizedForLlm,
     });
 
     stream.finalMessage().then(

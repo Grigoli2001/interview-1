@@ -1,9 +1,6 @@
 /**
- * PII Sanitizer - Redacts emails, phone numbers, and names from user input
- * before sending data to the LLM. Required for interview compliance.
- *
- * Uses redact-pii for reliable detection (well-known names list, robust regex
- * patterns) instead of custom heuristics.
+ * PII Sanitizer - Redacts PII from user input before sending to the LLM.
+ * Uses redact-pii for detection and our custom code pattern for alphanumeric IDs.
  */
 
 import { SyncRedactor } from "redact-pii";
@@ -11,16 +8,27 @@ import { SyncRedactor } from "redact-pii";
 const redactor = new SyncRedactor({
   globalReplaceWith: "[REDACTED]",
   builtInRedactors: {
+    emailAddress: { enabled: true },
     creditCardNumber: { enabled: true },
+    phoneNumber: { enabled: true },
+    usSocialSecurityNumber: { enabled: true },
     streetAddress: { enabled: true },
+    names: { enabled: false },
     zipcode: { enabled: false },
     ipAddress: { enabled: false },
-    usSocialSecurityNumber: { enabled: false },
     username: { enabled: false },
     password: { enabled: false },
     credentials: { enabled: false },
     digits: { enabled: false },
     url: { enabled: false },
+  },
+  customRedactors: {
+    before: [
+      {
+        regexpPattern: /\b(?=.*[0-9])(?=.*[A-Za-z])[A-Za-z0-9]{6,}\b/g,
+        replaceWith: "[REDACTED]",
+      },
+    ],
   },
 });
 
@@ -36,8 +44,7 @@ export function sanitize(text: string): string {
 
 /**
  * Sanitizes user messages in a conversation. Only user messages are sanitized;
- * assistant and system messages are left as-is (assistant is model output,
- * system is typically controlled).
+ * assistant messages are left as-is (model output).
  *
  * @param messages - Array of messages (Anthropic MessageParam format)
  * @returns New array with user message content sanitized
