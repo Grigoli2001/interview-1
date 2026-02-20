@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { auth, AUTH_ROUTES } from "@/lib/auth";
 import { getSafeCallbackUrl } from "@/lib/auth-routes";
 import { redirect } from "next/navigation";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export default async function ProtectedLayout({
   children,
@@ -16,5 +17,5 @@ export default async function ProtectedLayout({
     signInUrl.searchParams.set("callbackUrl", callbackUrl);
     redirect(signInUrl.pathname + signInUrl.search);
   }
-  return <>{children}</>;
+  return <AppSidebar>{children}</AppSidebar>;
 }
