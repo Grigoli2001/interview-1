@@ -8,7 +8,7 @@ import {
 } from "@/lib/llm/client";
 import { chatRequestSchema } from "@/lib/llm/types";
 import { logger } from "@/lib/logger";
-import { detectPii } from "@/lib/pii/detect";
+// import { detectPii } from "@/lib/pii/detect";
 import { detectPiiClient } from "@/lib/pii/client-detect";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -155,25 +155,25 @@ export async function POST(request: Request) {
           },
         });
 
-        // PII model is the final source of truth. Always overwrite regex spans.
-        try {
-          const llmSpans = await detectPii(textContent);
-          await prisma.message.update({
-            where: { id: created.id },
-            data: { piiSpans: (llmSpans.length > 0 ? llmSpans : []) as object },
-          });
-          const types = [...new Set(llmSpans.map((s) => s.type))].join(", ");
-          logger.info("PII model updated message spans in DB", {
-            messageId: created.id,
-            conversationId: conversation.id,
-            spanCount: llmSpans.length,
-            types: types || "(none)",
-          });
-        } catch (piiErr) {
-          logger.warn("PII model detection failed, keeping regex spans", {
-            error: piiErr,
-          });
-        }
+        // PII model disabled – using client-side regex spans only.
+        // try {
+        //   const llmSpans = await detectPii(textContent);
+        //   await prisma.message.update({
+        //     where: { id: created.id },
+        //     data: { piiSpans: (llmSpans.length > 0 ? llmSpans : []) as object },
+        //   });
+        //   const types = [...new Set(llmSpans.map((s) => s.type))].join(", ");
+        //   logger.info("PII model updated message spans in DB", {
+        //     messageId: created.id,
+        //     conversationId: conversation.id,
+        //     spanCount: llmSpans.length,
+        //     types: types || "(none)",
+        //   });
+        // } catch (piiErr) {
+        //   logger.warn("PII model detection failed, keeping regex spans", {
+        //     error: piiErr,
+        //   });
+        // }
 
         return created;
       },

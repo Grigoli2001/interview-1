@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { PiiSpan } from "@/lib/pii/types";
+import { MarkdownRenderer } from "@/lib/markdown";
 
 function spanId(span: PiiSpan): string {
   return `${span.start}-${span.end}`;
@@ -18,12 +19,15 @@ type PiiMaskedTextProps = {
   content: string;
   spans: PiiSpan[];
   className?: string;
+  /** When true, render text segments as markdown. Default: true for assistant-style content */
+  markdown?: boolean;
 };
 
 export function PiiMaskedText({
   content,
   spans,
   className,
+  markdown = true,
 }: PiiMaskedTextProps) {
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
@@ -40,6 +44,15 @@ export function PiiMaskedText({
   }, []);
 
   if (spans.length === 0) {
+    if (markdown) {
+      return (
+        <MarkdownRenderer
+          content={content}
+          className={cn(className)}
+          compact
+        />
+      );
+    }
     return (
       <p className={cn("whitespace-pre-wrap text-sm", className)}>{content}</p>
     );
@@ -69,6 +82,16 @@ export function PiiMaskedText({
         {segments.map((seg, i) => {
           const text = content.slice(seg.start, seg.end);
           if (seg.type === "text") {
+            if (markdown && text) {
+              return (
+                <MarkdownRenderer
+                  key={i}
+                  content={text}
+                  compact
+                  inline
+                />
+              );
+            }
             return <span key={i}>{text}</span>;
           }
           const id = spanId(seg.span);
