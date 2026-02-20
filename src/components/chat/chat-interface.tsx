@@ -2,45 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConversation, useInvalidateConversations } from "@/hooks/use-conversations";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-
-type Message = { id?: string; role: "user" | "assistant"; content: string };
-
-/**
- * Anthropic SDK's toReadableStream() produces newline-separated JSON (NDJSON),
- * not SSE. Each line is a full event object.
- */
-function parseStreamLine(line: string): { type?: string; delta?: { type?: string; text?: string } } | null {
-  const trimmed = line.trim();
-  if (!trimmed) return null;
-  try {
-    const parsed = JSON.parse(trimmed) as { type?: string; delta?: { type?: string; text?: string } };
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-async function* readStreamLines(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-): AsyncGenerator<string> {
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      yield line;
-    }
-  }
-  if (buffer) yield buffer;
-}
+import { parseStreamLine, readStreamLines } from "./utils";
+import type { Message } from "./types";
+import { ChatMessage } from "./chat-message";
+import { ChatStreamingMessage } from "./chat-streaming-message";
+import { ChatInput } from "./chat-input";
+import { ChatEmpty } from "./chat-empty";
+import { ChatError } from "./chat-error";
+import { ChatLoadingSkeleton } from "./chat-loading-skeleton";
 
 export function ChatInterface({
   conversationId: conversationIdProp,
@@ -148,104 +117,39 @@ export function ChatInterface({
   ]);
 
   if (effectiveConversationId && isPending && messages.length === 0) {
-    return (
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-3/4" />
-      </div>
-    );
+    return <ChatLoadingSkeleton />;
   }
 
   if (effectiveConversationId && error) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <p className="text-muted-foreground text-center">
-              Failed to load conversation
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ChatError />;
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {messages.length === 0 && !streamingContent ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-            <p className="text-muted-foreground">
-              Start a new conversation by typing a message below.
-            </p>
-          </div>
+          <ChatEmpty />
         ) : (
           <div className="mx-auto flex max-w-2xl flex-col gap-4">
             {messages.map((m) => (
-              <div
+              <ChatMessage
                 key={m.id ?? m.content.slice(0, 20)}
-                className={
-                  m.role === "user"
-                    ? "ml-auto max-w-[80%]"
-                    : "mr-auto max-w-[80%]"
-                }
-              >
-                <Card
-                  className={
-                    m.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : ""
-                  }
-                >
-                  <CardContent className="py-3">
-                    <p className="whitespace-pre-wrap text-sm">{m.content}</p>
-                  </CardContent>
-                </Card>
-              </div>
+                message={m}
+              />
             ))}
-            {streamingContent && (
-              <div className="mr-auto max-w-[80%]">
-                <Card>
-                  <CardContent className="py-3">
-                    <p className="whitespace-pre-wrap text-sm">
-                      {streamingContent}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+            {(isStreaming || streamingContent) && (
+              <ChatStreamingMessage content={streamingContent} />
             )}
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
-      <div className="border-t p-4">
-        <form
-          className="mx-auto flex max-w-2xl gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            sendMessage();
-          }}
-        >
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="min-h-[44px] resize-none"
-            rows={1}
-            disabled={isStreaming}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-          />
-          <Button type="submit" disabled={isStreaming || !input.trim()}>
-            Send
-          </Button>
-        </form>
-      </div>
+      <ChatInput
+        value={input}
+        onChange={setInput}
+        onSend={sendMessage}
+        disabled={isStreaming}
+      />
     </div>
   );
 }
