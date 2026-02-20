@@ -1,17 +1,23 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PiiMaskedText } from "./pii-masked-text";
+import type { PiiSpan } from "@/lib/pii/types";
 
 type ChatStreamingMessageProps = {
   content: string;
+  piiSpans?: PiiSpan[];
 };
 
-export function ChatStreamingMessage({ content }: ChatStreamingMessageProps) {
+export function ChatStreamingMessage({
+  content,
+  piiSpans = [],
+}: ChatStreamingMessageProps) {
   return (
     <div className="mr-auto max-w-[80%]">
       <Card>
         <CardContent className="py-3">
           {content ? (
-            <p className="whitespace-pre-wrap text-sm">{content}</p>
+            <PiiMaskedText content={content} spans={piiSpans} />
           ) : (
             <div className="flex w-48 flex-col gap-1.5">
               <Skeleton className="h-3 w-full" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { parsePiiSpansFromDb } from "@/lib/pii/types";
 
 export async function GET(
   request: NextRequest,
@@ -45,6 +46,7 @@ export async function GET(
         id: m.id,
         role: m.role,
         content: m.content,
+        piiSpans: parsePiiSpansFromDb(m.piiSpans),
         createdAt: m.createdAt,
       })),
     };

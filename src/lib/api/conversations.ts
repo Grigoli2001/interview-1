@@ -8,10 +8,13 @@ export type ConversationSummary = {
   messageCount: number;
 };
 
+import type { PiiSpan } from "@/lib/pii/types";
+
 export type Message = {
   id: string;
   role: string;
   content: string;
+  piiSpans?: PiiSpan[];
   createdAt: string;
 };
 

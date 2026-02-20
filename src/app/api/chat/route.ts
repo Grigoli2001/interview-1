@@ -8,7 +8,8 @@ import {
 } from "@/lib/llm/client";
 import { chatRequestSchema } from "@/lib/llm/types";
 import { logger } from "@/lib/logger";
-import { sanitizeMessages } from "@/lib/pii/sanitize";
+import { detectPii } from "@/lib/pii/detect";
+import { detectPiiClient } from "@/lib/pii/client-detect";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -50,10 +51,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { messages: newMessages, conversationId } = parsed.data;
+    const { messages: newMessages, conversationId, retry } = parsed.data;
 
     let conversation: { id: string };
     let historyMessages: MessageParam[] = [];
+    let userContent: string;
 
     if (conversationId) {
       const existing = await prisma.conversation.findFirst({
@@ -70,33 +72,66 @@ export async function POST(request: Request) {
       }
       conversation = { id: existing.id };
       historyMessages = dbMessagesToParams(existing.messages);
+
+      if (retry) {
+        const lastUser = existing.messages
+          .filter((m) => m.role === "user")
+          .pop();
+        if (!lastUser) {
+          return NextResponse.json(
+            { error: "No user message to retry" },
+            { status: 400 },
+          );
+        }
+        userContent = lastUser.content;
+      } else {
+        const lastUserMessage = newMessages![newMessages!.length - 1];
+        userContent = extractTextFromContent(lastUserMessage.content);
+      }
     } else {
       const created = await prisma.conversation.create({
         data: { userId },
       });
       conversation = { id: created.id };
+      const lastUserMessage = newMessages![newMessages!.length - 1];
+      userContent = extractTextFromContent(lastUserMessage.content);
     }
 
-    const allMessages: MessageParam[] = [
-      ...historyMessages,
-      ...(newMessages as MessageParam[]),
-    ];
-    const sanitized = sanitizeMessages(allMessages) as MessageParam[];
+    const allMessages: MessageParam[] = retry
+      ? historyMessages
+      : [
+          ...historyMessages,
+          ...(newMessages as MessageParam[]),
+        ];
     const withinContext = await trimToContextWindow(
-      sanitized,
+      allMessages as MessageParam[],
       CHAT_SYSTEM_PROMPT,
     );
 
-    const lastUserMessage = newMessages[newMessages.length - 1];
-    const userContent = extractTextFromContent(lastUserMessage.content);
+    let userMsg: { id: string } | null = null;
+    if (!retry) {
+      userMsg = await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: "user",
+          content: userContent,
+        },
+      });
 
-    await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "user",
-        content: userContent,
-      },
-    });
+      const userPiiSpans = detectPiiClient(userContent);
+      if (userPiiSpans.length > 0) {
+        prisma.message
+          .update({
+            where: { id: userMsg.id },
+            data: { piiSpans: userPiiSpans as object },
+          })
+          .catch((err) =>
+            logger.error("Failed to persist user message PII spans", {
+              error: err,
+            }),
+          );
+      }
+    }
 
     const stream = anthropic.messages.stream({
       model: DEFAULT_MODEL,
@@ -106,15 +141,35 @@ export async function POST(request: Request) {
     });
 
     stream.finalMessage().then(
-      (msg) => {
+      async (msg) => {
         const textContent = extractTextFromAssistantContent(msg.content);
-        return prisma.message.create({
+        const regexSpans = detectPiiClient(textContent);
+        const created = await prisma.message.create({
           data: {
             conversationId: conversation.id,
             role: "assistant",
             content: textContent,
+            ...(regexSpans.length > 0 && { piiSpans: regexSpans as object }),
           },
         });
+
+        // Run PII model after generation; overwrite regex spans with LLM results.
+        // UI changes appear on refresh; client-side regex is trusted until then.
+        try {
+          const llmSpans = await detectPii(textContent);
+          if (llmSpans.length > 0) {
+            await prisma.message.update({
+              where: { id: created.id },
+              data: { piiSpans: llmSpans as object },
+            });
+          }
+        } catch (piiErr) {
+          logger.warn("PII model detection failed, keeping regex spans", {
+            error: piiErr,
+          });
+        }
+
+        return created;
       },
       (err) => {
         logger.error("Failed to persist assistant message", { error: err });

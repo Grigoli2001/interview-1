@@ -22,9 +22,17 @@ export const messageParamSchema = z.object({
 });
 
 export const chatRequestSchema = z.object({
-  messages: z.array(messageParamSchema).min(1, "At least one message required"),
+  messages: z.array(messageParamSchema).optional(),
   conversationId: z.string().cuid().optional(),
-});
+  /** When true, use last user message from conversation instead of creating new one. Requires conversationId. */
+  retry: z.boolean().optional(),
+}).refine(
+  (data) => {
+    if (data.retry) return !!data.conversationId;
+    return (data.messages?.length ?? 0) >= 1;
+  },
+  { message: "Either messages (min 1) or retry with conversationId required" },
+);
 
 export const extractRequestSchema = z.object({
   text: z.string().min(1, "Text is required"),

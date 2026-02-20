@@ -3,6 +3,7 @@ import { auth, AUTH_ROUTES } from "@/lib/auth";
 import { getSafeCallbackUrl } from "@/lib/auth-routes";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ClientOnly } from "@/components/client-only";
 
 export default async function ProtectedLayout({
   children,
@@ -17,5 +18,16 @@ export default async function ProtectedLayout({
     signInUrl.searchParams.set("callbackUrl", callbackUrl);
     redirect(signInUrl.pathname + signInUrl.search);
   }
-  return <AppSidebar>{children}</AppSidebar>;
+  return (
+    <ClientOnly
+      fallback={
+        <div className="flex min-h-screen w-full">
+          <div className="hidden w-64 shrink-0 border-r md:block" />
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+      }
+    >
+      <AppSidebar>{children}</AppSidebar>
+    </ClientOnly>
+  );
 }
