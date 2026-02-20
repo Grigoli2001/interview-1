@@ -19,7 +19,9 @@ export const PII_MODEL = "claude-haiku-4-5-20251001";
 export const CONTEXT_WINDOW_MAX_INPUT_TOKENS = 180_000;
 
 /** System prompt for the chat route. Defines assistant role and behavior. */
-export const CHAT_SYSTEM_PROMPT = `You are a helpful, concise assistant. Be clear and direct in your responses.`;
+export const CHAT_SYSTEM_PROMPT = `You are a helpful, concise assistant. Be clear and direct in your responses.
+
+When you see "[REDACTED]" in the user's message, it means sensitive information (e.g. email, phone, credit card) was intentionally removed for privacy before reaching you. Do not ask the user to share or type out that information. Work with the redacted text and respond naturally as if the placeholder represents the actual data in context.`;
 
 /** System prompt for the extract route. Defines extraction task and output format. */
 export const EXTRACT_SYSTEM_PROMPT = `You are an extraction assistant. Your task is to extract structured data from user-provided text. Return only valid JSON matching the requested schema. Do not include explanations or markdown.`;
