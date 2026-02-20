@@ -41,7 +41,7 @@ The application follows a layered architecture:
 
 ```mermaid
 flowchart TB
-    subgraph Client["Client (Browser)"]
+    subgraph Client["Client Browser"]
         UI[Chat Interface]
         ChatInput[Chat Input]
         ChatMessage[Chat Message]
@@ -59,13 +59,13 @@ flowchart TB
     subgraph API["Next.js API Routes"]
         ChatAPI["/api/chat"]
         ConvAPI["/api/chat/conversations"]
-        AuthAPI["/api/auth/[...nextauth]"]
+        AuthAPI["/api/auth"]
         PiiAPI["/api/pii/detect"]
     end
 
     subgraph Server["Server"]
-        Auth[auth()]
-        Prisma[(Prisma)]
+        Auth[Session Auth]
+        Prisma[Prisma ORM]
         Anthropic[Anthropic Claude]
         detectClientSvr[detectPiiClient]
         
@@ -78,15 +78,15 @@ flowchart TB
         AuthAPI --> Prisma
     end
 
-    subgraph DB[(PostgreSQL)]
-        User[(User)]
-        Conv[(Conversation)]
-        Msg[(Message)]
+    subgraph DB["PostgreSQL"]
+        User[User]
+        Conv[Conversation]
+        Msg[Message]
     end
 
     Prisma --> DB
-    UI -->|POST /api/chat| ChatAPI
-    UI -->|GET /api/chat/conversations| ConvAPI
+    UI -->|POST| ChatAPI
+    UI -->|GET| ConvAPI
 ```
 
 ---
@@ -101,34 +101,33 @@ sequenceDiagram
     participant Prisma
     participant Claude
 
-    User->>ChatInterface: Type message & Send
-    ChatInterface->>ChatAPI: POST /api/chat (messages, conversationId?)
-    
-    ChatAPI->>ChatAPI: auth() - validate session
+    User->>ChatInterface: Type message and Send
+    ChatInterface->>ChatAPI: POST messages
+    ChatAPI->>ChatAPI: validate session
     alt New conversation
         ChatAPI->>ChatAPI: truncateForTitle(userMessage)
-        ChatAPI->>Prisma: create Conversation (userId, title)
+        ChatAPI->>Prisma: create Conversation
     else Existing conversation
         ChatAPI->>Prisma: findFirst Conversation
     end
 
-    ChatAPI->>Prisma: create Message (user)
-    ChatAPI->>ChatAPI: detectPiiClient(userContent) → update piiSpans
+    ChatAPI->>Prisma: create user Message
+    ChatAPI->>ChatAPI: detectPiiClient, update piiSpans
     ChatAPI->>ChatAPI: trimToContextWindow(messages)
     
     ChatAPI->>Claude: messages.stream()
-    ChatAPI-->>ChatInterface: ReadableStream (NDJSON)
+    ChatAPI-->>ChatInterface: ReadableStream NDJSON
     
     loop Stream chunks
         ChatInterface->>ChatInterface: parseStreamLine, extract text
         ChatInterface->>ChatInterface: detectPiiClient(streamingContent)
-        ChatInterface->>User: Render ChatStreamingMessage (PII masked, markdown)
+        ChatInterface->>User: Render message with PII masked and markdown
     end
 
     Claude->>ChatAPI: finalMessage
     ChatAPI->>ChatAPI: detectPiiClient(assistantContent)
-    ChatAPI->>Prisma: create Message (assistant, piiSpans)
-    ChatInterface->>Prisma: GET conversation (refetch)
+    ChatAPI->>Prisma: create assistant Message
+    ChatInterface->>Prisma: GET conversation refetch
     ChatInterface->>User: Display persisted messages
 ```
 
